@@ -1,1 +1,5 @@
-/foolslideproxy
+# Nix
+result*
+
+# Misc
+/.direnv

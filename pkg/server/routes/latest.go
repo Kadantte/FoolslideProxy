@@ -1,23 +1,22 @@
 package routes
 
 import (
-	"github.com/Minettyx/FoolslideProxy/pkg/modules"
-	"github.com/Minettyx/FoolslideProxy/pkg/server/formatter"
-	"github.com/Minettyx/FoolslideProxy/pkg/server/pathhandler"
-	"github.com/Minettyx/FoolslideProxy/pkg/server/transformer"
-	"github.com/Minettyx/FoolslideProxy/pkg/types"
-	"io"
 	"log"
 	"net/http"
 	"sort"
 	"sync"
+
+	"github.com/Minettyx/FoolslideProxy/pkg/modules"
+	"github.com/Minettyx/FoolslideProxy/pkg/server/pathhandler"
+	"github.com/Minettyx/FoolslideProxy/pkg/server/templates"
+	"github.com/Minettyx/FoolslideProxy/pkg/server/transformer"
+	"github.com/Minettyx/FoolslideProxy/pkg/types"
 )
 
 func Latest1(w http.ResponseWriter, r *http.Request) {
 
-	pathdlr := pathhandler.MixHandler
 	trans := transformer.Transformer{
-		PathHandler: &pathdlr,
+		PathHandler: pathhandler.MixHandler,
 	}
 
 	var wg sync.WaitGroup
@@ -26,12 +25,8 @@ func Latest1(w http.ResponseWriter, r *http.Request) {
 	results := []*types.LatestResult{}
 
 	for _, mod := range modules.Modules {
-		go func(mod *types.Module) {
+		go func(mod types.Module) {
 			defer wg.Done()
-
-			if mod.Latest == nil {
-				return
-			}
 
 			res, err := mod.Latest()
 			if err != nil {
@@ -45,7 +40,7 @@ func Latest1(w http.ResponseWriter, r *http.Request) {
 			}
 
 			for i := range res {
-				trans.LatestResult(mod.Id, &res[i])
+				trans.LatestResult(mod.Id(), &res[i])
 				results = append(results, &res[i])
 			}
 
@@ -59,5 +54,5 @@ func Latest1(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.Header().Set("Cache-Control", "max-age=3600, public")
-	io.WriteString(w, formatter.Latest(results))
+	templates.Latest(results).Render(r.Context(), w)
 }

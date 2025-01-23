@@ -1,14 +1,14 @@
 package routes
 
 import (
-	"github.com/Minettyx/FoolslideProxy/pkg/modules"
-	"github.com/Minettyx/FoolslideProxy/pkg/server/errors"
-	"github.com/Minettyx/FoolslideProxy/pkg/server/formatter"
-	"github.com/Minettyx/FoolslideProxy/pkg/server/pathhandler"
-	"github.com/Minettyx/FoolslideProxy/pkg/server/transformer"
-	"io"
 	"log"
 	"net/http"
+
+	"github.com/Minettyx/FoolslideProxy/pkg/modules"
+	"github.com/Minettyx/FoolslideProxy/pkg/server/errors"
+	"github.com/Minettyx/FoolslideProxy/pkg/server/pathhandler"
+	"github.com/Minettyx/FoolslideProxy/pkg/server/templates"
+	"github.com/Minettyx/FoolslideProxy/pkg/server/transformer"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -23,11 +23,11 @@ func Series(w http.ResponseWriter, r *http.Request) {
 	}
 
 	trans := transformer.Transformer{
-		PathHandler: &pathdlr,
+		PathHandler: pathdlr,
 	}
 
 	for _, mod := range modules.Modules {
-		if mod.Id == params.ModId {
+		if mod.Id() == params.ModId {
 			data, err := mod.Manga(params.MangaId)
 
 			if err != nil {
@@ -41,10 +41,10 @@ func Series(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			trans.Manga(mod.Id, params.MangaId, data)
+			trans.Manga(mod.Id(), params.MangaId, data)
 
 			w.Header().Set("Cache-Control", "max-age=3600, public")
-			io.WriteString(w, formatter.Series(mod, data))
+			templates.Series(mod, data).Render(r.Context(), w)
 			return
 		}
 	}
@@ -63,7 +63,7 @@ func SeriesRedirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, mod := range modules.Modules {
-		if mod.Id == params.ModId {
+		if mod.Id() == params.ModId {
 			data, err := mod.Manga(params.MangaId)
 			if err != nil {
 				log.Println(err)
